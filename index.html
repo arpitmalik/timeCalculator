@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Calculators</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .calculator {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            color: #555;
+        }
+
+        input[type="time"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        input[type="number"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        p {
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+
+            .calculator {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Time Calculators</h1>
+
+        <div class="calculator">
+            <h2>Time Addition/Subtraction Calculator</h2>
+            <label for="baseTime">Base Time (HH:MM):</label>
+            <input type="time" id="baseTime" step="60" oninput="addSubtractTime()">
+            <label for="timeToAdd">Time to Add/Subtract (HH:MM):</label>
+            <input type="time" id="timeToAdd" step="60" value="07:30" oninput="addSubtractTime()">
+            <p id="timeAddSubtractResult"></p>
+        </div>
+
+        <div class="calculator">
+            <h2>Audiobook Speed Calculator</h2>
+            <label for="hours">Hours:</label>
+            <input type="number" id="hours" min="0" oninput="calculateListeningTime()">
+            <label for="minutes">Minutes:</label>
+            <input type="number" id="minutes" min="0" max="59" oninput="calculateListeningTime()">
+            <label for="speed">Playback Speed:</label>
+            <input type="number" id="speed" step="0.1" min="0.1" oninput="calculateListeningTime()">
+            <p id="listeningTimeResult"></p>
+        </div>
+    </div>
+    <script>
+        function calculateListeningTime() {
+            const hours = parseInt(document.getElementById('hours').value) || 0;
+            const minutes = parseInt(document.getElementById('minutes').value) || 0;
+            const speed = parseFloat(document.getElementById('speed').value) || 1;
+
+            const totalMinutes = (hours * 60) + minutes;
+            const adjustedMinutes = totalMinutes / speed;
+
+            const resultHours = Math.floor(adjustedMinutes / 60);
+            const resultMinutes = Math.round(adjustedMinutes % 60);
+
+            document.getElementById('listeningTimeResult').innerText = 
+                `Listening time at ${speed}x speed: ${resultHours} hours and ${resultMinutes} minutes`;
+        }
+
+        function addSubtractTime() {
+            const baseTime = document.getElementById('baseTime').value;
+            const timeToAdd = document.getElementById('timeToAdd').value;
+
+            if (!baseTime || !timeToAdd) {
+                document.getElementById('timeAddSubtractResult').innerText = 
+                    'Please provide both times in correct format.';
+                return;
+            }
+
+            const [baseHours, baseMinutes] = baseTime.split(':').map(Number);
+            const [addHours, addMinutes] = timeToAdd.split(':').map(Number);
+
+            const baseTotalMinutes = (baseHours * 60) + baseMinutes;
+            const addTotalMinutes = (addHours * 60) + addMinutes;
+
+            let resultTotalMinutes = baseTotalMinutes + addTotalMinutes;
+
+            if (resultTotalMinutes < 0) {
+                resultTotalMinutes = 1440 + resultTotalMinutes; // If result is negative, add 24 hours (1440 minutes)
+            }
+
+            const resultHours24 = Math.floor(resultTotalMinutes / 60) % 24;
+            const resultMinutes = resultTotalMinutes % 60;
+
+            // Convert resultHours24 to 12-hour format with AM/PM
+            let period = 'AM';
+            let resultHours12 = resultHours24;
+            if (resultHours24 >= 12) {
+                period = 'PM';
+                resultHours12 = resultHours12 === 12 ? 12 : resultHours12 - 12;
+            } else if (resultHours12 === 0) {
+                resultHours12 = 12; // Midnight (0 hours) is 12 AM
+            }
+
+            document.getElementById('timeAddSubtractResult').innerText = 
+                `Resulting time: ${String(resultHours12).padStart(2, '0')}:${String(resultMinutes).padStart(2, '0')} ${period}`;
+        }
+    </script>
+</body>
+</html>
