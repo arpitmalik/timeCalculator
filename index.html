@@ -171,6 +171,9 @@
             document.getElementById('listeningTimeResult').innerText =
                 `Listening time at ${speed}x speed: ${resultHours} hours and ${resultMinutes} minutes`;
         }
+        function updateAddSubtractTimeResult() {
+            addSubtractTime();
+        }
         function addSubtractTime() {
             const baseTime = document.getElementById('baseTime').value;
             const timeToAdd = document.getElementById('timeToAdd').value;
@@ -213,7 +216,6 @@
             document.getElementById('notifyButton').style.display = 'block';
             document.getElementById('notifyButton').setAttribute('data-result-time', resultTime);
         }
-
         function notifyMe() {
             const resultTime = document.getElementById('notifyButton').getAttribute('data-result-time');
             const [time, period] = resultTime.split(' ');
@@ -259,8 +261,15 @@
             Notification.requestPermission();
         }
 
-        // Set current time on page load
-        window.onload = setCurrentTime;
+        // Set current time and run addSubtractTime on page load
+        window.onload = function () {
+            setCurrentTime();
+            updateAddSubtractTimeResult(); // Call update function initially
+        };
+
+        // Add input event listeners to trigger update function
+        document.getElementById('baseTime').addEventListener('input', updateAddSubtractTimeResult);
+        document.getElementById('timeToAdd').addEventListener('input', updateAddSubtractTimeResult);
     </script>
 </body>
 
