@@ -6,7 +6,7 @@
     <title>Time Calculators</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: #f0f0f0;
             margin: 0;
             padding: 20px;
@@ -35,6 +35,7 @@
             padding: 20px;
             border-radius: 8px;
             background-color: #f9f9f9;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
         }
 
         label {
@@ -43,22 +44,27 @@
             color: #555;
         }
 
-        input[type="time"] {
+        input[type="time"], input[type="number"] {
             width: calc(100% - 20px);
             padding: 10px;
             margin-top: 5px;
             margin-bottom: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            font-size: 16px;
+            -webkit-appearance: none; /* Safari */
         }
 
-        input[type="number"] {
-            width: calc(100% - 20px);
-            padding: 10px;
-            margin-top: 5px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        input[type="time"]::-webkit-inner-spin-button, input[type="time"]::-webkit-calendar-picker-indicator,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none; /* Safari */
+            display: none;
+        }
+
+        input[type="time"]:focus, input[type="number"]:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.25);
         }
 
         p {
@@ -67,13 +73,39 @@
             color: #333;
         }
 
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
         @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
             .container {
                 padding: 15px;
             }
 
             .calculator {
                 padding: 15px;
+            }
+
+            button {
+                font-size: 14px;
+                padding: 8px 16px;
             }
         }
     </style>
@@ -87,6 +119,7 @@
             <label for="timeToAdd">Time to Add (HH:MM):</label>
             <input type="time" id="timeToAdd" step="60" value="07:30" oninput="addSubtractTime()">
             <p id="timeAddSubtractResult"></p>
+            <button id="notifyButton" onclick="notifyMe()" style="display:none;">Notify Me</button>
         </div>
 
         <div class="calculator">
@@ -151,8 +184,46 @@
                 resultHours12 = 12; // Midnight (0 hours) is 12 AM
             }
 
+            const resultTime = `${String(resultHours12).padStart(2, '0')}:${String(resultMinutes).padStart(2, '0')} ${period}`;
             document.getElementById('timeAddSubtractResult').innerText = 
-                `Resulting time: ${String(resultHours12).padStart(2, '0')}:${String(resultMinutes).padStart(2, '0')} ${period}`;
+                `Resulting time: ${resultTime}`;
+
+            document.getElementById('notifyButton').style.display = 'block';
+            document.getElementById('notifyButton').setAttribute('data-result-time', resultTime);
+        }
+
+        function notifyMe() {
+            const resultTime = document.getElementById('notifyButton').getAttribute('data-result-time');
+            const [time, period] = resultTime.split(' ');
+            const [hours, minutes] = time.split(':').map(Number);
+            const isPM = period === 'PM';
+            const resultHours24 = isPM ? (hours % 12) + 12 : hours % 12;
+
+            const now = new Date();
+            const resultDate = new Date();
+            resultDate.setHours(resultHours24);
+            resultDate.setMinutes(minutes);
+            resultDate.setSeconds(0);
+
+            const timeDifference = resultDate - now;
+
+            if (timeDifference > 0) {
+                setTimeout(() => {
+                    if (Notification.permission === 'granted') {
+                        new Notification('Time Calculator', {
+                            body: `It's ${resultTime}`,
+                        });
+                    }
+                }, timeDifference);
+
+                alert(`You will be notified at ${resultTime}`);
+            } else {
+                alert('The resulting time is in the past.');
+            }
+        }
+
+        if ('Notification' in window && Notification.permission !== 'granted') {
+            Notification.requestPermission();
         }
     </script>
 </body>
