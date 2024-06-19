@@ -1,0 +1,21 @@
+{
+  "name": "Time Calculators",
+  "short_name": "Time Calc",
+  "description": "A simple time calculator and audiobook speed calculator.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0f0f0",
+  "theme_color": "#007bff",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

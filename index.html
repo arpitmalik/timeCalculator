@@ -1,8 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
+    <link rel="manifest" href="manifest.json">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+
     <title>Time Calculators</title>
     <style>
         body {
@@ -25,7 +41,8 @@
             border-radius: 8px;
         }
 
-        h1, h2 {
+        h1,
+        h2 {
             text-align: center;
             color: #333;
         }
@@ -44,7 +61,8 @@
             color: #555;
         }
 
-        input[type="time"], input[type="number"] {
+        input[type="time"],
+        input[type="number"] {
             width: calc(100% - 20px);
             padding: 10px;
             margin-top: 5px;
@@ -52,16 +70,20 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 16px;
-            -webkit-appearance: none; /* Safari */
+            -webkit-appearance: none;
+            /* Safari */
         }
 
-        input[type="time"]::-webkit-inner-spin-button, input[type="time"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-inner-spin-button,
+        input[type="time"]::-webkit-calendar-picker-indicator,
         input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none; /* Safari */
+            -webkit-appearance: none;
+            /* Safari */
             display: none;
         }
 
-        input[type="time"]:focus, input[type="number"]:focus {
+        input[type="time"]:focus,
+        input[type="number"]:focus {
             border-color: #007bff;
             outline: none;
             box-shadow: 0 0 5px rgba(0, 123, 255, 0.25);
@@ -110,10 +132,11 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="calculator">
-           <h2>Time Calculator</h2>
+            <h2>Time Calculator</h2>
             <label for="baseTime">Base Time (HH:MM):</label>
             <input type="time" id="baseTime" step="60" oninput="addSubtractTime()">
             <label for="timeToAdd">Time to Add (HH:MM):</label>
@@ -145,16 +168,15 @@
             const resultHours = Math.floor(adjustedMinutes / 60);
             const resultMinutes = Math.round(adjustedMinutes % 60);
 
-            document.getElementById('listeningTimeResult').innerText = 
+            document.getElementById('listeningTimeResult').innerText =
                 `Listening time at ${speed}x speed: ${resultHours} hours and ${resultMinutes} minutes`;
         }
-
         function addSubtractTime() {
             const baseTime = document.getElementById('baseTime').value;
             const timeToAdd = document.getElementById('timeToAdd').value;
 
             if (!baseTime || !timeToAdd) {
-                document.getElementById('timeAddSubtractResult').innerText = 
+                document.getElementById('timeAddSubtractResult').innerText =
                     'Please provide both times in correct format.';
                 return;
             }
@@ -185,7 +207,7 @@
             }
 
             const resultTime = `${String(resultHours12).padStart(2, '0')}:${String(resultMinutes).padStart(2, '0')} ${period}`;
-            document.getElementById('timeAddSubtractResult').innerText = 
+            document.getElementById('timeAddSubtractResult').innerText =
                 `Resulting time: ${resultTime}`;
 
             document.getElementById('notifyButton').style.display = 'block';
@@ -213,6 +235,8 @@
                         new Notification('Time Calculator', {
                             body: `It's ${resultTime}`,
                         });
+                    } else {
+                        alert(`It's ${resultTime}`);
                     }
                 }, timeDifference);
 
@@ -222,9 +246,22 @@
             }
         }
 
+        function setCurrentTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const currentTime = `${hours}:${minutes}`;
+
+            document.getElementById('baseTime').value = currentTime;
+        }
+
         if ('Notification' in window && Notification.permission !== 'granted') {
             Notification.requestPermission();
         }
+
+        // Set current time on page load
+        window.onload = setCurrentTime;
     </script>
 </body>
+
 </html>
