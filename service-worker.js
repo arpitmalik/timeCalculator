@@ -1,11 +1,9 @@
 // service-worker.js
 const CACHE_NAME = 'time-calculator-v1';
 const urlsToCache = [
-  '/',
-  'index.html',
-  'style.css', // If you have a separate CSS file
-  'script.js', // Your existing JavaScript file
-  // Add other static assets like images, fonts, etc.
+  './',
+  './index.html'
+  // Add other assets like images, fonts, etc., if you have any
 ];
 
 self.addEventListener('install', event => {
@@ -21,5 +19,20 @@ self.addEventListener('fetch', event => {
       .then(response => {
         return response || fetch(event.request);
       })
+  );
+});
+
+self.addEventListener('activate', event => {
+  const cacheWhitelist = [CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (!cacheWhitelist.includes(cacheName)) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
   );
 });
