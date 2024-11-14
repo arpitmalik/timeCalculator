@@ -2,25 +2,23 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
+     <meta charset="UTF-8" />
     <link rel="manifest" href="manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Time Calculators</title>
     <script>
         if ("serviceWorker" in navigator) {
-            window.addEventListener("load", () => {
-                navigator.serviceWorker
-                    .register("./service-worker.js")
-                    .then((registration) => {
-                        console.log(
-                            "Service Worker registered with scope:",
-                            registration.scope
-                        );
-                    })
-                    .catch((error) => {
-                        console.error("Service Worker registration failed:", error);
-                    });
-            });
+            navigator.serviceWorker
+                .register("./service-worker.js")
+                .then((registration) => {
+                    console.log(
+                        "Service Worker registered with scope:",
+                        registration.scope
+                    );
+                })
+                .catch((error) => {
+                    console.error("Service Worker registration failed:", error);
+                });
         }
     </script>
 
@@ -265,7 +263,13 @@
         }
 
         window.onload = function () {
-            addSubtractTime();
+            // Set baseTime to current time
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById("baseTime").value = `${hours}:${minutes}`;
+            
+            addSubtractTime(); // Run the calculation on page load
         };
     </script>
 </body>
