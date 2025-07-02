@@ -84,10 +84,36 @@
         }
 
         input[type="time"]:focus,
-        input[type="number"]:focus {
+        input[type="number"]:focus,
+        select:focus {
             border-color: #007bff;
             outline: none;
             box-shadow: 0 0 5px rgba(0, 123, 255, 0.25);
+        }
+
+        select {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            background-color: white;
+        }
+
+        .time-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .time-inputs > div {
+            flex: 1;
+        }
+
+        .time-inputs label {
+            margin-bottom: 5px;
         }
 
         p {
@@ -131,6 +157,101 @@
                 padding: 8px 16px;
             }
         }
+
+        .notification-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .notification-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #007bff;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .notification-controls {
+            display: none;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .notification-controls.show {
+            display: flex;
+        }
+
+        .notification-controls input[type="number"] {
+            width: 80px;
+        }
+
+        .notification-status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .notification-status.active {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .notification-status.inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
     </style>
 </head>
 
@@ -139,13 +260,42 @@
         <div class="calculator">
             <h2>Time Calculator</h2>
             <label for="baseTime">Base Time (HH:MM):</label>
-            <input type="time" id="baseTime" step="60" oninput="addSubtractTime()" />
-            <label for="timeToAdd">Time to Add (HH:MM):</label>
-            <input type="time" id="timeToAdd" step="60" value="07:30" oninput="addSubtractTime()" />
+            <input type="time" id="baseTime" step="60" oninput="addSubtractTime()" value="12:00" />
+            <label>Time to Add:</label>
+            <div class="time-inputs">
+                <div>
+                    <label for="addHours">Hours:</label>
+                    <select id="addHours" onchange="addSubtractTime()">
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                </div>
+                <div>
+                    <label for="addMinutes">Minutes:</label>
+                    <select id="addMinutes" onchange="addSubtractTime()">
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                </div>
+            </div>
             <p id="timeAddSubtractResult"></p>
-            <button id="notifyButton" onclick="notifyMe()" style="display: none">
-                Notify Me
-            </button>
+            
+            <div class="notification-section">
+                <div class="notification-toggle">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="notificationToggle" onchange="toggleNotification()">
+                        <span class="slider"></span>
+                    </label>
+                    <span>Notify me when it's time</span>
+                </div>
+                
+                <div class="notification-controls" id="notificationControls">
+                    <label for="reminderMinutes">Remind me:</label>
+                    <input type="number" id="reminderMinutes" min="1" max="60" value="5" onchange="updateNotification()">
+                    <span>minutes before</span>
+                    <button onclick="setNotification()" style="margin: 0;">Set Reminder</button>
+                </div>
+                
+                <div class="notification-status" id="notificationStatus"></div>
+            </div>
         </div>
 
         <div class="calculator">
@@ -179,21 +329,19 @@
 
         function addSubtractTime() {
             const baseTime = document.getElementById("baseTime").value;
-            const timeToAdd = document.getElementById("timeToAdd").value;
+            const addHours = parseInt(document.getElementById("addHours").value) || 0;
+            const addMinutes = parseInt(document.getElementById("addMinutes").value) || 0;
 
-            if (!baseTime || !timeToAdd) {
+            if (!baseTime) {
                 document.getElementById("timeAddSubtractResult").innerText =
-                    "Please provide both times in correct format.";
+                    "Please provide a base time.";
                 return;
             }
 
             const [baseHours, baseMinutes] = baseTime.split(":").map(Number);
-            const [addHours, addMinutes] = timeToAdd.split(":").map(Number);
-
-            const baseTotalMinutes = baseHours * 60 + baseMinutes;
             const addTotalMinutes = addHours * 60 + addMinutes;
 
-            let resultTotalMinutes = baseTotalMinutes + addTotalMinutes;
+            let resultTotalMinutes = baseHours * 60 + baseMinutes + addTotalMinutes;
 
             if (resultTotalMinutes < 0) {
                 resultTotalMinutes = 1440 + resultTotalMinutes; // If result is negative, add 24 hours (1440 minutes)
@@ -218,59 +366,272 @@
                 "timeAddSubtractResult"
             ).innerText = `Resulting time: ${resultTime}`;
 
-            document.getElementById("notifyButton").style.display = "block";
-            document
-                .getElementById("notifyButton")
-                .setAttribute("data-result-time", resultTime);
+            // Store the result time for potential future use
+            window.resultTime = resultTime;
         }
 
-        function notifyMe() {
-            const resultTime = document
-                .getElementById("notifyButton")
-                .getAttribute("data-result-time");
-            const [time, period] = resultTime.split(" ");
-            const [hours, minutes] = time.split(":").map(Number);
-            const isPM = period === "PM";
-            const resultHours24 = isPM ? (hours % 12) + 12 : hours % 12;
+        // Function to populate dropdown options
+        function populateDropdowns() {
+            // Populate hours dropdown (0-24)
+            const hoursSelect = document.getElementById("addHours");
+            const hoursOptions = Array.from({length: 25}, (_, i) => {
+                const option = document.createElement("option");
+                option.value = i;
+                option.textContent = i === 1 ? "1 hour" : `${i} hours`;
+                if (i === 7) option.selected = true; // Default to 7 hours
+                return option;
+            });
+            hoursSelect.innerHTML = "";
+            hoursOptions.forEach(option => hoursSelect.appendChild(option));
 
-            const now = new Date();
-            const resultDate = new Date();
-            resultDate.setHours(resultHours24);
-            resultDate.setMinutes(minutes);
-            resultDate.setSeconds(0);
+            // Populate minutes dropdown (0-59)
+            const minutesSelect = document.getElementById("addMinutes");
+            const minutesOptions = Array.from({length: 60}, (_, i) => {
+                const option = document.createElement("option");
+                option.value = i;
+                option.textContent = i === 1 ? "1 minute" : `${i} minutes`;
+                if (i === 30) option.selected = true; // Default to 30 minutes
+                return option;
+            });
+            minutesSelect.innerHTML = "";
+            minutesOptions.forEach(option => minutesSelect.appendChild(option));
+        }
 
-            const timeDifference = resultDate - now;
-
-            if (timeDifference > 0) {
-                setTimeout(() => {
-                    if (Notification.permission === "granted") {
-                        new Notification("Time Calculator", {
-                            body: `It's ${resultTime}`,
-                        });
-                    } else {
-                        alert(`It's ${resultTime}`);
+        // Function to initialize the page with current time
+        function initializePage() {
+            try {
+                // Set baseTime to current time
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const currentTime = `${hours}:${minutes}`;
+                
+                const baseTimeInput = document.getElementById("baseTime");
+                if (baseTimeInput) {
+                    baseTimeInput.value = currentTime;
+                    
+                    // Show a temporary message that initialization worked
+                    const resultElement = document.getElementById("timeAddSubtractResult");
+                    if (resultElement) {
+                        resultElement.innerText = `Initialized with current time: ${currentTime}`;
                     }
-                }, timeDifference);
-
-                alert(`You will be notified at ${resultTime}`);
-            } else {
-                alert("The resulting time is in the past.");
+                    
+                    // Trigger the calculation after a short delay
+                    setTimeout(() => {
+                        addSubtractTime();
+                    }, 500);
+                } else {
+                    // Show error message on page
+                    document.body.innerHTML += '<p style="color: red; text-align: center;">Error: Could not find baseTime input</p>';
+                }
+            } catch (error) {
+                // Show error message on page
+                document.body.innerHTML += '<p style="color: red; text-align: center;">Error: ' + error.message + '</p>';
             }
         }
 
-        if ("Notification" in window && Notification.permission !== "granted") {
-            Notification.requestPermission();
+        // Initialize when the page loads
+        window.onload = function () {
+            populateDropdowns();
+            setTimeout(initializePage, 100);
+            checkNotificationPermission();
+        };
+
+        // Notification functionality
+        let notificationTimer = null;
+        let notificationTargetTime = null;
+
+        function checkNotificationPermission() {
+            if (!("Notification" in window)) {
+                document.getElementById("notificationStatus").innerHTML = 
+                    "Notifications not supported in this browser";
+                document.getElementById("notificationStatus").className = "notification-status inactive";
+                return;
+            }
+
+            if (Notification.permission === "granted") {
+                document.getElementById("notificationStatus").innerHTML = 
+                    "Notifications enabled";
+                document.getElementById("notificationStatus").className = "notification-status active";
+            } else if (Notification.permission === "denied") {
+                document.getElementById("notificationStatus").innerHTML = 
+                    "Notifications blocked. Please enable in browser settings.";
+                document.getElementById("notificationStatus").className = "notification-status inactive";
+            } else {
+                document.getElementById("notificationStatus").innerHTML = 
+                    "Click 'Notify me' to enable notifications";
+                document.getElementById("notificationStatus").className = "notification-status inactive";
+            }
         }
 
-        window.onload = function () {
-            // Set baseTime to current time
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById("baseTime").value = `${hours}:${minutes}`;
+        function toggleNotification() {
+            const toggle = document.getElementById("notificationToggle");
+            const controls = document.getElementById("notificationControls");
             
-            addSubtractTime(); // Run the calculation on page load
-        };
+            if (toggle.checked) {
+                controls.classList.add("show");
+                requestNotificationPermission();
+            } else {
+                controls.classList.remove("show");
+                clearNotification();
+            }
+        }
+
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("Notifications not supported in this browser");
+                return;
+            }
+
+            if (Notification.permission === "default") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        checkNotificationPermission();
+                    } else {
+                        document.getElementById("notificationToggle").checked = false;
+                        document.getElementById("notificationControls").classList.remove("show");
+                        alert("Notification permission denied");
+                    }
+                });
+            } else if (Notification.permission === "denied") {
+                alert("Please enable notifications in your browser settings");
+                document.getElementById("notificationToggle").checked = false;
+                document.getElementById("notificationControls").classList.remove("show");
+            }
+        }
+
+        function setNotification() {
+            if (!window.resultTime) {
+                alert("Please calculate a time first");
+                return;
+            }
+
+            if (Notification.permission !== "granted") {
+                alert("Please enable notifications first");
+                return;
+            }
+
+            const reminderMinutes = parseInt(document.getElementById("reminderMinutes").value) || 5;
+            
+            // Parse the result time (format: "HH:MM AM/PM")
+            const timeMatch = window.resultTime.match(/(\d+):(\d+)\s*(AM|PM)/);
+            if (!timeMatch) {
+                alert("Invalid time format");
+                return;
+            }
+
+            let hours = parseInt(timeMatch[1]);
+            const minutes = parseInt(timeMatch[2]);
+            const period = timeMatch[3];
+
+            // Convert to 24-hour format
+            if (period === "PM" && hours !== 12) hours += 12;
+            if (period === "AM" && hours === 12) hours = 0;
+
+            // Create target date
+            const targetDate = new Date();
+            targetDate.setHours(hours, minutes, 0, 0);
+
+            // If the target time has passed today, set it for tomorrow
+            if (targetDate <= new Date()) {
+                targetDate.setDate(targetDate.getDate() + 1);
+            }
+
+            // Calculate reminder time
+            const reminderDate = new Date(targetDate.getTime() - (reminderMinutes * 60 * 1000));
+
+            // Clear any existing timer
+            clearNotification();
+
+            // Store reminder data in service worker for background operation
+            const reminderData = {
+                targetTime: targetDate.toISOString(),
+                displayTime: window.resultTime,
+                reminderMinutes: reminderMinutes
+            };
+
+            // Send data to service worker
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: "SET_REMINDER",
+                    reminderData: reminderData
+                });
+            }
+
+            // Also set a local timer as backup
+            const now = new Date();
+            const delay = reminderDate.getTime() - now.getTime();
+            console.log("🚀 ~ setNotification ~ delay:", delay)
+
+            if (delay > 0) {
+                notificationTimer = setTimeout(() => {
+                    showNotification();
+                }, delay);
+
+                notificationTargetTime = targetDate;
+                
+                document.getElementById("notificationStatus").innerHTML = 
+                    `Reminder set for ${reminderMinutes} minutes before ${window.resultTime} (Background enabled)`;
+                document.getElementById("notificationStatus").className = "notification-status active";
+            } else {
+                alert("The reminder time has already passed");
+            }
+        }
+
+        function clearNotification() {
+            if (notificationTimer) {
+                clearTimeout(notificationTimer);
+                notificationTimer = null;
+            }
+            notificationTargetTime = null;
+
+            // Clear reminder from service worker
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: "CLEAR_REMINDER"
+                });
+            }
+
+            document.getElementById("notificationStatus").innerHTML = "No active reminder";
+            document.getElementById("notificationStatus").className = "notification-status inactive";
+        }
+
+        function showNotification() {
+            if (Notification.permission === "granted") {
+                // Use service worker for notification if available
+                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: "SHOW_NOTIFICATION",
+                        notification: {
+                            title: "Time Reminder",
+                            body: `It's almost time! Your calculated time (${window.resultTime}) is approaching.`,
+                            icon: "/icon-192x192.png"
+                        }
+                    });
+                } else {
+                    // Fallback to direct notification
+                    const notification = new Notification("Time Reminder", {
+                        body: `It's almost time! Your calculated time (${window.resultTime}) is approaching.`,
+                        icon: "/icon-192x192.png",
+                        badge: "/icon-192x192.png"
+                    });
+
+                    // Auto-close notification after 10 seconds
+                    setTimeout(() => {
+                        notification.close();
+                    }, 10000);
+                }
+
+                // Clear the timer
+                clearNotification();
+            }
+        }
+
+        function updateNotification() {
+            if (document.getElementById("notificationToggle").checked && notificationTargetTime) {
+                setNotification();
+            }
+        }
     </script>
 </body>
 
