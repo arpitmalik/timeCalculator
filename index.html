@@ -433,13 +433,52 @@
             populateDropdowns();
             setTimeout(initializePage, 100);
             checkNotificationPermission();
+            loadRemindersFromStorage();
             updateRemindersDisplay();
         };
+
+        function loadRemindersFromStorage() {
+            try {
+                const storedReminders = localStorage.getItem('timeCalculatorReminders');
+                if (storedReminders) {
+                    reminders = JSON.parse(storedReminders);
+
+                    // Filter out expired reminders
+                    reminders = reminders.filter(reminder => {
+                        const targetDate = new Date(reminder.targetTime);
+                        return targetDate.getTime() > Date.now();
+                    });
+
+                    // Clear timer property (can't be serialized)
+                    reminders.forEach(reminder => {
+                        reminder.timer = null;
+                    });
+
+                    // Update localStorage with filtered reminders
+                    if (reminders.length > 0) {
+                        localStorage.setItem('timeCalculatorReminders', JSON.stringify(reminders));
+                        startCountdown();
+
+                        // Update status message
+                        document.getElementById("notificationStatus").innerHTML =
+                            `⏰ ${reminders.length} active reminder${reminders.length > 1 ? 's' : ''} loaded`;
+                        document.getElementById("notificationStatus").className = "notification-status active";
+                    } else {
+                        localStorage.removeItem('timeCalculatorReminders');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading reminders from storage:', error);
+                reminders = [];
+                localStorage.removeItem('timeCalculatorReminders');
+            }
+        }
 
         // Notification functionality
         let notificationTimer = null;
         let notificationTargetTime = null;
         let reminders = [];
+        console.log("🚀 ~ reminders:", reminders)
         let countdownInterval = null;
 
         function checkNotificationPermission() {
@@ -501,7 +540,7 @@
                 return;
             }
 
-            const reminderMinutes = 0; // Fixed 5-minute reminder
+            const reminderMinutes = 0; 
 
             // Parse the result time (format: "HH:MM AM/PM")
             const timeMatch = window.resultTime.match(/(\d+):(\d+)\s*(AM|PM)/);
@@ -530,8 +569,7 @@
             // Calculate reminder time (remind at exact time)
             const reminderDate = targetDate;
 
-            // Clear any existing timer
-            clearNotification();
+            // Don't clear existing reminders - allow multiple
 
             // Store reminder data in service worker for background operation
             const reminderData = {
@@ -554,17 +592,16 @@
             const delay = reminderDate.getTime() - now.getTime();
 
             if (delay > 0) {
-                notificationTimer = setTimeout(() => {
-                    showNotification();
+                // Create individual timer for this reminder
+                const reminderTimer = setTimeout(() => {
+                    showNotificationForReminder(reminderData);
                 }, delay);
 
-                notificationTargetTime = targetDate;
-
                 // Add to reminders list
-                addReminder(targetDate.toISOString(), window.resultTime);
+                addReminder(targetDate.toISOString(), window.resultTime, reminderTimer);
 
                 document.getElementById("notificationStatus").innerHTML =
-                    `⏰ Reminder set for ${window.resultTime} (works even when app is closed)`;
+                    `⏰ Reminder added for ${window.resultTime} (${reminders.length} active reminders)`;
                 document.getElementById("notificationStatus").className = "notification-status active";
             } else {
                 alert("The reminder time has already passed");
@@ -583,7 +620,10 @@
             }
 
             notificationTargetTime = null;
+
+            // Clear reminders array
             reminders = [];
+            localStorage.removeItem('timeCalculatorReminders');
 
             // Clear reminder from service worker
             if (navigator.serviceWorker && navigator.serviceWorker.controller) {
@@ -597,30 +637,66 @@
             updateRemindersDisplay();
         }
 
-        function addReminder(targetTime, displayTime) {
+        function addReminder(targetTime, displayTime, timer = null) {
             const reminder = {
                 id: Date.now(),
                 targetTime: targetTime,
                 displayTime: displayTime,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                timer: timer
             };
 
+            // Add to reminders array
             reminders.push(reminder);
+
+            // Store reminders array in localStorage for persistence
+            localStorage.setItem('timeCalculatorReminders', JSON.stringify(reminders));
+
             updateRemindersDisplay();
             startCountdown();
         }
 
         function removeReminder(reminderId) {
+            // Find the reminder to clear its timer
+            const reminder = reminders.find(r => r.id === reminderId);
+            if (reminder && reminder.timer) {
+                clearTimeout(reminder.timer);
+            }
+
+            // Remove from reminders array
             reminders = reminders.filter(r => r.id !== reminderId);
+
+            // Update localStorage
+            localStorage.setItem('timeCalculatorReminders', JSON.stringify(reminders));
+
             updateRemindersDisplay();
 
+            // Update status message
             if (reminders.length === 0) {
-                clearNotification();
+                document.getElementById("notificationStatus").innerHTML = "🔕 No active reminders";
+                document.getElementById("notificationStatus").className = "notification-status inactive";
+            } else {
+                document.getElementById("notificationStatus").innerHTML =
+                    `⏰ ${reminders.length} active reminder${reminders.length > 1 ? 's' : ''}`;
+                document.getElementById("notificationStatus").className = "notification-status active";
             }
         }
 
         function updateRemindersDisplay() {
             const container = document.getElementById("remindersContainer");
+
+            // Filter out expired reminders from the array
+            reminders = reminders.filter(reminder => {
+                const targetDate = new Date(reminder.targetTime);
+                return targetDate.getTime() > Date.now();
+            });
+
+            // Update localStorage with filtered array
+            if (reminders.length > 0) {
+                localStorage.setItem('timeCalculatorReminders', JSON.stringify(reminders));
+            } else {
+                localStorage.removeItem('timeCalculatorReminders');
+            }
 
             if (reminders.length === 0) {
                 container.innerHTML = '<p style="color: #666; font-style: italic;">No active reminders</p>';
@@ -631,10 +707,6 @@
                 const targetDate = new Date(reminder.targetTime);
                 const now = new Date();
                 const timeLeft = targetDate.getTime() - now.getTime();
-
-                if (timeLeft <= 0) {
-                    return ''; // Remove expired reminders
-                }
 
                 const minutesLeft = Math.floor(timeLeft / 60000);
                 const hoursLeft = Math.floor(minutesLeft / 60);
@@ -667,12 +739,6 @@
             countdownInterval = setInterval(() => {
                 updateRemindersDisplay();
 
-                // Remove expired reminders
-                reminders = reminders.filter(reminder => {
-                    const targetDate = new Date(reminder.targetTime);
-                    return targetDate.getTime() > Date.now();
-                });
-
                 if (reminders.length === 0) {
                     clearInterval(countdownInterval);
                     countdownInterval = null;
@@ -680,7 +746,7 @@
             }, 30000); // Update every 30 seconds
         }
 
-        function showNotification() {
+        function showNotificationForReminder(reminderData) {
             if (Notification.permission === "granted") {
                 // Use service worker for notification if available
                 if (navigator.serviceWorker && navigator.serviceWorker.controller) {
@@ -688,14 +754,14 @@
                         type: "SHOW_NOTIFICATION",
                         notification: {
                             title: "⏰ Time Reminder",
-                            body: `It's time! Your calculated time (${window.resultTime}) has arrived.`,
+                            body: `It's time! Your calculated time (${reminderData.displayTime}) has arrived.`,
                             icon: "/icon-192x192.png"
                         }
                     });
                 } else {
                     // Fallback to direct notification
                     const notification = new Notification("⏰ Time Reminder", {
-                        body: `It's time! Your calculated time (${window.resultTime}) has arrived.`,
+                        body: `It's time! Your calculated time (${reminderData.displayTime}) has arrived.`,
                         icon: "/icon-192x192.png",
                         badge: "/icon-192x192.png"
                     });
@@ -713,11 +779,17 @@
                 });
                 updateRemindersDisplay();
 
-                // Clear the timer
-                clearNotification();
+                // Update status message
+                if (reminders.length === 0) {
+                    document.getElementById("notificationStatus").innerHTML = "🔕 No active reminders";
+                    document.getElementById("notificationStatus").className = "notification-status inactive";
+                } else {
+                    document.getElementById("notificationStatus").innerHTML =
+                        `⏰ ${reminders.length} active reminder${reminders.length > 1 ? 's' : ''}`;
+                    document.getElementById("notificationStatus").className = "notification-status active";
+                }
             }
         }
-
 
     </script>
 </body>
