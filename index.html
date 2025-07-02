@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-     <meta charset="UTF-8" />
+    <meta charset="UTF-8" />
     <link rel="manifest" href="manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Time Calculators</title>
@@ -108,7 +108,7 @@
             align-items: end;
         }
 
-        .time-inputs > div {
+        .time-inputs>div {
             flex: 1;
         }
 
@@ -187,6 +187,66 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
+        .reminders-list {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .reminders-list h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .reminder-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 5px 0;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+
+        .reminder-time {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .reminder-countdown {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .remove-reminder {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .remove-reminder:hover {
+            background: #c82333;
+        }
+
+        .version-info {
+            text-align: center;
+            margin-top: 30px;
+            padding: 10px;
+            color: #666;
+            font-size: 14px;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+        }
     </style>
 </head>
 
@@ -212,12 +272,19 @@
                 </div>
             </div>
             <p id="timeAddSubtractResult"></p>
-            
+
             <div class="notification-section">
                 <button onclick="setNotification()" style="margin: 10px auto; display: block;">
                     🔔 Notify me when it's time
                 </button>
                 <div class="notification-status" id="notificationStatus"></div>
+
+                <div class="reminders-list" id="remindersList">
+                    <h4>Active Reminders</h4>
+                    <div id="remindersContainer">
+                        <p style="color: #666; font-style: italic;">No active reminders</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -231,7 +298,15 @@
             <input type="number" id="speed" step="0.1" min="0.1" oninput="calculateListeningTime()" />
             <p id="listeningTimeResult"></p>
         </div>
+
+
+        <div class="version-info">
+            <p>v1.0.0</p>
+        </div>
+
     </div>
+
+
 
     <script>
         function calculateListeningTime() {
@@ -297,7 +372,7 @@
         function populateDropdowns() {
             // Populate hours dropdown (0-24)
             const hoursSelect = document.getElementById("addHours");
-            const hoursOptions = Array.from({length: 25}, (_, i) => {
+            const hoursOptions = Array.from({ length: 25 }, (_, i) => {
                 const option = document.createElement("option");
                 option.value = i;
                 option.textContent = i === 1 ? "1 hour" : `${i} hours`;
@@ -309,7 +384,7 @@
 
             // Populate minutes dropdown (0-59)
             const minutesSelect = document.getElementById("addMinutes");
-            const minutesOptions = Array.from({length: 60}, (_, i) => {
+            const minutesOptions = Array.from({ length: 60 }, (_, i) => {
                 const option = document.createElement("option");
                 option.value = i;
                 option.textContent = i === 1 ? "1 minute" : `${i} minutes`;
@@ -328,17 +403,17 @@
                 const hours = String(now.getHours()).padStart(2, '0');
                 const minutes = String(now.getMinutes()).padStart(2, '0');
                 const currentTime = `${hours}:${minutes}`;
-                
+
                 const baseTimeInput = document.getElementById("baseTime");
                 if (baseTimeInput) {
                     baseTimeInput.value = currentTime;
-                    
+
                     // Show a temporary message that initialization worked
                     const resultElement = document.getElementById("timeAddSubtractResult");
                     if (resultElement) {
                         resultElement.innerText = `Initialized with current time: ${currentTime}`;
                     }
-                    
+
                     // Trigger the calculation after a short delay
                     setTimeout(() => {
                         addSubtractTime();
@@ -358,30 +433,33 @@
             populateDropdowns();
             setTimeout(initializePage, 100);
             checkNotificationPermission();
+            updateRemindersDisplay();
         };
 
         // Notification functionality
         let notificationTimer = null;
         let notificationTargetTime = null;
+        let reminders = [];
+        let countdownInterval = null;
 
         function checkNotificationPermission() {
             if (!("Notification" in window)) {
-                document.getElementById("notificationStatus").innerHTML = 
+                document.getElementById("notificationStatus").innerHTML =
                     "Notifications not supported in this browser";
                 document.getElementById("notificationStatus").className = "notification-status inactive";
                 return;
             }
 
             if (Notification.permission === "granted") {
-                document.getElementById("notificationStatus").innerHTML = 
+                document.getElementById("notificationStatus").innerHTML =
                     "Notifications enabled";
                 document.getElementById("notificationStatus").className = "notification-status active";
             } else if (Notification.permission === "denied") {
-                document.getElementById("notificationStatus").innerHTML = 
+                document.getElementById("notificationStatus").innerHTML =
                     "Notifications blocked. Please enable in browser settings.";
                 document.getElementById("notificationStatus").className = "notification-status inactive";
             } else {
-                document.getElementById("notificationStatus").innerHTML = 
+                document.getElementById("notificationStatus").innerHTML =
                     "Click 'Notify me' to enable notifications";
                 document.getElementById("notificationStatus").className = "notification-status inactive";
             }
@@ -424,7 +502,7 @@
             }
 
             const reminderMinutes = 0; // Fixed 5-minute reminder
-            
+
             // Parse the result time (format: "HH:MM AM/PM")
             const timeMatch = window.resultTime.match(/(\d+):(\d+)\s*(AM|PM)/);
             if (!timeMatch) {
@@ -481,8 +559,11 @@
                 }, delay);
 
                 notificationTargetTime = targetDate;
-                
-                document.getElementById("notificationStatus").innerHTML = 
+
+                // Add to reminders list
+                addReminder(targetDate.toISOString(), window.resultTime);
+
+                document.getElementById("notificationStatus").innerHTML =
                     `⏰ Reminder set for ${window.resultTime} (works even when app is closed)`;
                 document.getElementById("notificationStatus").className = "notification-status active";
             } else {
@@ -495,7 +576,14 @@
                 clearTimeout(notificationTimer);
                 notificationTimer = null;
             }
+
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+
             notificationTargetTime = null;
+            reminders = [];
 
             // Clear reminder from service worker
             if (navigator.serviceWorker && navigator.serviceWorker.controller) {
@@ -504,8 +592,92 @@
                 });
             }
 
-            document.getElementById("notificationStatus").innerHTML = "No active reminder";
+            document.getElementById("notificationStatus").innerHTML = "🔕 No active reminder";
             document.getElementById("notificationStatus").className = "notification-status inactive";
+            updateRemindersDisplay();
+        }
+
+        function addReminder(targetTime, displayTime) {
+            const reminder = {
+                id: Date.now(),
+                targetTime: targetTime,
+                displayTime: displayTime,
+                timestamp: Date.now()
+            };
+
+            reminders.push(reminder);
+            updateRemindersDisplay();
+            startCountdown();
+        }
+
+        function removeReminder(reminderId) {
+            reminders = reminders.filter(r => r.id !== reminderId);
+            updateRemindersDisplay();
+
+            if (reminders.length === 0) {
+                clearNotification();
+            }
+        }
+
+        function updateRemindersDisplay() {
+            const container = document.getElementById("remindersContainer");
+
+            if (reminders.length === 0) {
+                container.innerHTML = '<p style="color: #666; font-style: italic;">No active reminders</p>';
+                return;
+            }
+
+            container.innerHTML = reminders.map(reminder => {
+                const targetDate = new Date(reminder.targetTime);
+                const now = new Date();
+                const timeLeft = targetDate.getTime() - now.getTime();
+
+                if (timeLeft <= 0) {
+                    return ''; // Remove expired reminders
+                }
+
+                const minutesLeft = Math.floor(timeLeft / 60000);
+                const hoursLeft = Math.floor(minutesLeft / 60);
+                const remainingMinutes = minutesLeft % 60;
+
+                let countdownText = '';
+                if (hoursLeft > 0) {
+                    countdownText = `${hoursLeft}h ${remainingMinutes}m`;
+                } else {
+                    countdownText = `${remainingMinutes}m`;
+                }
+
+                return `
+                    <div class="reminder-item">
+                        <div>
+                            <div class="reminder-time">${reminder.displayTime}</div>
+                            <div class="reminder-countdown">${countdownText} remaining</div>
+                        </div>
+                        <button class="remove-reminder" onclick="removeReminder(${reminder.id})">Remove</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function startCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            countdownInterval = setInterval(() => {
+                updateRemindersDisplay();
+
+                // Remove expired reminders
+                reminders = reminders.filter(reminder => {
+                    const targetDate = new Date(reminder.targetTime);
+                    return targetDate.getTime() > Date.now();
+                });
+
+                if (reminders.length === 0) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
+            }, 30000); // Update every 30 seconds
         }
 
         function showNotification() {
@@ -533,6 +705,13 @@
                         notification.close();
                     }, 30000);
                 }
+
+                // Remove the triggered reminder from the list
+                reminders = reminders.filter(reminder => {
+                    const targetDate = new Date(reminder.targetTime);
+                    return targetDate.getTime() > Date.now();
+                });
+                updateRemindersDisplay();
 
                 // Clear the timer
                 clearNotification();
