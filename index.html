@@ -449,8 +449,8 @@
                 targetDate.setDate(targetDate.getDate() + 1);
             }
 
-            // Calculate reminder time
-            const reminderDate = new Date(targetDate.getTime() - (reminderMinutes * 60 * 1000));
+            // Calculate reminder time (remind at exact time)
+            const reminderDate = targetDate;
 
             // Clear any existing timer
             clearNotification();
@@ -459,7 +459,8 @@
             const reminderData = {
                 targetTime: targetDate.toISOString(),
                 displayTime: window.resultTime,
-                reminderMinutes: reminderMinutes
+                reminderMinutes: reminderMinutes,
+                timestamp: Date.now()
             };
 
             // Send data to service worker
@@ -470,10 +471,9 @@
                 });
             }
 
-            // Also set a local timer as backup
+            // Set a local timer as backup (only for when app is open)
             const now = new Date();
             const delay = reminderDate.getTime() - now.getTime();
-            console.log("🚀 ~ setNotification ~ delay:", delay)
 
             if (delay > 0) {
                 notificationTimer = setTimeout(() => {
@@ -483,7 +483,7 @@
                 notificationTargetTime = targetDate;
                 
                 document.getElementById("notificationStatus").innerHTML = 
-                    `Reminder set for ${reminderMinutes} minutes before ${window.resultTime} (Background enabled)`;
+                    `⏰ Reminder set for ${window.resultTime} (works even when app is closed)`;
                 document.getElementById("notificationStatus").className = "notification-status active";
             } else {
                 alert("The reminder time has already passed");
@@ -515,23 +515,23 @@
                     navigator.serviceWorker.controller.postMessage({
                         type: "SHOW_NOTIFICATION",
                         notification: {
-                            title: "Time Reminder",
-                            body: `It's almost time! Your calculated time (${window.resultTime}) is approaching.`,
+                            title: "⏰ Time Reminder",
+                            body: `It's time! Your calculated time (${window.resultTime}) has arrived.`,
                             icon: "/icon-192x192.png"
                         }
                     });
                 } else {
                     // Fallback to direct notification
-                    const notification = new Notification("Time Reminder", {
-                        body: `It's almost time! Your calculated time (${window.resultTime}) is approaching.`,
+                    const notification = new Notification("⏰ Time Reminder", {
+                        body: `It's time! Your calculated time (${window.resultTime}) has arrived.`,
                         icon: "/icon-192x192.png",
                         badge: "/icon-192x192.png"
                     });
 
-                    // Auto-close notification after 10 seconds
+                    // Auto-close notification after 30 seconds
                     setTimeout(() => {
                         notification.close();
-                    }, 10000);
+                    }, 30000);
                 }
 
                 // Clear the timer

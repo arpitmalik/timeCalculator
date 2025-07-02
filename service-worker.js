@@ -109,6 +109,23 @@ self.addEventListener("periodicsync", (event) => {
   }
 });
 
+// Set up periodic checking for reminders (every minute)
+setInterval(async () => {
+  try {
+    const reminderData = await getStoredReminder();
+    if (reminderData && reminderData.targetTime) {
+      const now = new Date();
+      const targetTime = new Date(reminderData.targetTime);
+      
+      if (now >= targetTime) {
+        await handleTimeReminder();
+      }
+    }
+  } catch (error) {
+    console.error("Error in periodic reminder check:", error);
+  }
+}, 60000); // Check every minute
+
 // Function to handle time reminders
 async function handleTimeReminder() {
   try {
@@ -120,12 +137,14 @@ async function handleTimeReminder() {
       
       if (now >= targetTime) {
         // Show notification
-        await self.registration.showNotification("Time Reminder", {
+        await self.registration.showNotification("⏰ Time Reminder", {
           body: `It's time! Your calculated time (${reminderData.displayTime}) has arrived.`,
           icon: "/icon-192x192.png",
           badge: "/icon-192x192.png",
           tag: "time-reminder",
-          requireInteraction: true
+          requireInteraction: true,
+          silent: false,
+          vibrate: [200, 100, 200]
         });
         
         // Clear the stored reminder
