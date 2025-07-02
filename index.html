@@ -166,72 +166,7 @@
             border: 1px solid #e9ecef;
         }
 
-        .notification-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
 
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 24px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background-color: #007bff;
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-
-        .notification-controls {
-            display: none;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .notification-controls.show {
-            display: flex;
-        }
-
-        .notification-controls input[type="number"] {
-            width: 80px;
-        }
 
         .notification-status {
             margin-top: 10px;
@@ -279,21 +214,9 @@
             <p id="timeAddSubtractResult"></p>
             
             <div class="notification-section">
-                <div class="notification-toggle">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="notificationToggle" onchange="toggleNotification()">
-                        <span class="slider"></span>
-                    </label>
-                    <span>Notify me when it's time</span>
-                </div>
-                
-                <div class="notification-controls" id="notificationControls">
-                    <label for="reminderMinutes">Remind me:</label>
-                    <input type="number" id="reminderMinutes" min="1" max="60" value="5" onchange="updateNotification()">
-                    <span>minutes before</span>
-                    <button onclick="setNotification()" style="margin: 0;">Set Reminder</button>
-                </div>
-                
+                <button onclick="setNotification()" style="margin: 10px auto; display: block;">
+                    🔔 Notify me when it's time
+                </button>
                 <div class="notification-status" id="notificationStatus"></div>
             </div>
         </div>
@@ -464,18 +387,7 @@
             }
         }
 
-        function toggleNotification() {
-            const toggle = document.getElementById("notificationToggle");
-            const controls = document.getElementById("notificationControls");
-            
-            if (toggle.checked) {
-                controls.classList.add("show");
-                requestNotificationPermission();
-            } else {
-                controls.classList.remove("show");
-                clearNotification();
-            }
-        }
+
 
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
@@ -507,11 +419,11 @@
             }
 
             if (Notification.permission !== "granted") {
-                alert("Please enable notifications first");
+                requestNotificationPermission();
                 return;
             }
 
-            const reminderMinutes = parseInt(document.getElementById("reminderMinutes").value) || 5;
+            const reminderMinutes = 0; // Fixed 5-minute reminder
             
             // Parse the result time (format: "HH:MM AM/PM")
             const timeMatch = window.resultTime.match(/(\d+):(\d+)\s*(AM|PM)/);
@@ -627,11 +539,7 @@
             }
         }
 
-        function updateNotification() {
-            if (document.getElementById("notificationToggle").checked && notificationTargetTime) {
-                setNotification();
-            }
-        }
+
     </script>
 </body>
 
